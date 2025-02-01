@@ -6,79 +6,98 @@ use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
 pub enum Node {
-    File { hash: String, path: PathBuf },
-    Directory { children: HashMap<String, Node>, path: PathBuf },
+    File { hash: String },
+    Directory { children: HashMap<String, Node> },
 }
 
 #[derive(Debug)]
 pub struct ProjectTree {
-    root: Node,
+    pub(crate) root: Node,
+    base_path: PathBuf,
 }
 
 impl ProjectTree {
-    /// Create a new empty project tree.
-    fn new() -> Self {
-        ProjectTree {
-            root: Node::Directory {
-                children: HashMap::new(),
-                path: PathBuf::from("."),
-            },
-        }
+    /// Create a new project tree rooted at the given path
+    pub fn new(base_path: impl Into<PathBuf>) -> io::Result<Self> {
+        let base_path = base_path.into().canonicalize()?;
+        Ok(ProjectTree {
+            root: Node::Directory { children: HashMap::new() },
+            base_path,
+        })
     }
 
-    /// Add a file or directory to the tree.
-    fn add(&mut self, path: &Path) -> io::Result<()> {
-        if path.is_file() {
-            let current_hash = self.compute_hash(path)?;
-            self.add_file(path, current_hash)?;
-        } else if path.is_dir() {
-            self.add_all(path)?;
+    /// Add a file or directory to the tree
+    pub fn add(&mut self, path: &Path) -> io::Result<()> {
+        let abs_path = path.canonicalize()?;
+        let relative_path = abs_path.strip_prefix(&self.base_path)
+            .map_err(|_| io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Path is outside project directory"
+            ))?;
+
+        if abs_path.is_file() {
+            let current_hash = self.compute_hash(&abs_path)?;
+            self.add_file(relative_path, current_hash)?;
+        } else if abs_path.is_dir() {
+            self.add_all(relative_path)?;
         }
         Ok(())
     }
 
-    /// Add a single file to the tree.
-    fn add_file(&mut self, path: &Path, current_hash: String) -> io::Result<()> {
+    /// Add a single file using relative path
+    fn add_file(&mut self, rel_path: &Path, current_hash: String) -> io::Result<()> {
+        let components: Vec<&str> = rel_path.iter()
+            .filter_map(|c| c.to_str())
+            .collect();
+
+        if components.is_empty() {
+            return Err(io::Error::new(io::ErrorKind::InvalidInput, "Empty path"));
+        }
+
+        let (file_component, dir_components) = components.split_last().unwrap();
         let mut current = &mut self.root;
-        let components: Vec<&str> = path.iter().map(|c| c.to_str().unwrap()).collect();
 
-        for (i, component) in components.iter().enumerate() {
-            if let Node::Directory { children, path: dir_path } = current {
-                if i == components.len() - 1 {
-                    // Last component is the file to add
-                    if let Some(Node::File { hash: stored_hash, .. }) = children.get(component) {
-                        if stored_hash != &current_hash {
-                            println!("File modified: {}", path.display());
-                        }
-                    } else {
-                        println!("New file added: {}", path.display());
-                    }
+        // Build directory structure
+        for component in dir_components {
+            current = match current {
+                Node::Directory { children } => {
+                    children.entry((*component).to_string())
+                        .or_insert_with(|| Node::Directory {
+                            children: HashMap::new(),
+                        })
+                }
+                _ => return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "Invalid path: expected directory",
+                )),
+            };
+        }
 
-                    // Update the file in the tree
-                    children.insert(component.to_string(), Node::File {
-                        hash: current_hash.clone(),
-                        path: path.to_path_buf(),
-                    });
-                } else {
-                    // Traverse into the directory
-                    current = children.entry(component.to_string()).or_insert_with(|| Node::Directory {
-                        children: HashMap::new(),
-                        path: dir_path.join(component),
-                    });
+        // Insert file
+        if let Node::Directory { children } = current {
+            let file_name = (*file_component).to_string();
+
+            // Check for existing file
+            if let Some(Node::File { hash: existing }) = children.get(&file_name) {
+                if existing != &current_hash {
+                    println!("Modified: {}", self.base_path.join(rel_path).display());
                 }
             } else {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    "Invalid path: expected a directory",
-                ));
+                println!("Added: {}", self.base_path.join(rel_path).display());
             }
+
+            children.insert(file_name, Node::File {
+                hash: current_hash,
+            });
         }
+
         Ok(())
     }
 
-    /// Add all files in a directory recursively.
-    fn add_all(&mut self, path: &Path) -> io::Result<()> {
-        for entry in fs::read_dir(path)? {
+    /// Add directory contents recursively
+    fn add_all(&mut self, rel_path: &Path) -> io::Result<()> {
+        let abs_path = self.base_path.join(rel_path);
+        for entry in fs::read_dir(abs_path)? {
             let entry = entry?;
             let entry_path = entry.path();
             self.add(&entry_path)?;
@@ -86,14 +105,69 @@ impl ProjectTree {
         Ok(())
     }
 
-    /// Compute the hash of a file using SHA-1.
-    fn compute_hash(&self, path: &Path) -> io::Result<String> {
-        let content = fs::read(path)?; // Read the file content
+    /// Compute SHA-1 hash of file contents
+    pub(crate) fn compute_hash(&self, path: &Path) -> io::Result<String> {
+        let content = fs::read(path)?;
         let mut hasher = Sha1::new();
         hasher.update(&content);
-        let result = hasher.finalize(); // SHA-1 digest
+        Ok(hasher.finalize().iter().map(|b| format!("{:02x}", b)).collect())
+    }
 
-        // Convert hash bytes to a hex string
-        Ok(result.iter().map(|b| format!("{:02x}", b)).collect())
+    /// Get file hash by relative path
+    pub fn get_file_hash(&self, rel_path: &Path) -> Option<&String> {
+        let components: Vec<&str> = rel_path.iter()
+            .filter_map(|c| c.to_str())
+            .collect();
+
+        if components.is_empty() {
+            return None;
+        }
+
+        let (file_component, dir_components) = components.split_last().unwrap();
+        let mut current = &self.root;
+
+        for component in dir_components {
+            current = match current {
+                Node::Directory { children } => children.get(*component)?,
+                _ => return None,
+            };
+        }
+
+        match current {
+            Node::Directory { children } => {
+                if let Node::File { hash } = children.get(*file_component)? {
+                    Some(hash)
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
+
+    /// Check if a path exists in the tree
+    pub fn exists(&self, rel_path: &Path) -> bool {
+        self.get_file_hash(rel_path).is_some()
+    }
+
+    /// List all files in the tree with relative paths
+    pub fn list_files(&self) -> Vec<PathBuf> {
+        let mut files = Vec::new();
+        self.traverse(&self.root, PathBuf::new(), &mut files);
+        files
+    }
+
+    fn traverse(&self, node: &Node, current_path: PathBuf, files: &mut Vec<PathBuf>) {
+        match node {
+            Node::File { .. } => {
+                files.push(current_path);
+            }
+            Node::Directory { children } => {
+                for (name, node) in children {
+                    let path = current_path.join(name);
+                    self.traverse(node, path, files);
+                }
+            }
+        }
     }
 }
