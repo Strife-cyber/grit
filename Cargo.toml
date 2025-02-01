@@ -1,0 +1,9 @@
+[package]
+name = "grit"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sha1 = "0.11.0-pre.4"
+flate2 = "1.0.35"
+tempfile = "3.16.0"
