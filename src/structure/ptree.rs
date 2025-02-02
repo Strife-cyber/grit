@@ -1,19 +1,21 @@
 use std::fs;
 use std::io;
 use sha1::{Sha1, Digest};
+use std::io::{Read, Write};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Node {
     File { hash: String },
     Directory { children: HashMap<String, Node> },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ProjectTree {
     pub(crate) root: Node,
-    base_path: PathBuf,
+    pub(crate) base_path: PathBuf,
 }
 
 impl ProjectTree {
@@ -169,5 +171,20 @@ impl ProjectTree {
                 }
             }
         }
+    }
+
+    pub fn save(&self, file_path: &Path) -> io::Result<()> {
+        let json = serde_json::to_string_pretty(self)?;
+        let mut file = fs::File::create(file_path)?;
+        file.write_all(json.as_bytes())?;
+        Ok(())
+    }
+
+    pub fn load(file_path: &Path) -> io::Result<Self> {
+        let mut file = fs::File::open(file_path)?;
+        let mut json = String::new();
+        file.read_to_string(&mut json)?;
+        let tree: ProjectTree = serde_json::from_str(&json)?;
+        Ok(tree)
     }
 }

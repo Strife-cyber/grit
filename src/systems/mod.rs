@@ -1,1 +1,2 @@
-pub mod commits;
+pub(super) mod init;
+mod tests;

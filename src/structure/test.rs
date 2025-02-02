@@ -1,3 +1,4 @@
+use std::io;
 use std::io::Write;
 use std::path::Path;
 use tempfile::TempDir;
@@ -7,7 +8,9 @@ use super::ptree::{Node, ProjectTree};
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use std::path::PathBuf;
+    use tempfile::NamedTempFile;
     use super::*;
 
     fn create_file(path: &Path, content: &str) {
@@ -121,5 +124,42 @@ mod tests {
 
         tree.add(tmp_dir.path()).unwrap();
         assert_eq!(tree.list_files().len(), 0);
+    }
+
+    #[test]
+    fn test_save_and_load() -> io::Result<()> {
+        let temp_file = NamedTempFile::new()?; // Create a temporary file
+        let file_path = temp_file.path().to_path_buf();
+
+        // Create a test ProjectTree with a directory and a file
+        let mut tree = ProjectTree {
+            root: Node::Directory { children: HashMap::new() },
+            base_path: PathBuf::from("/test"),
+        };
+
+        // Add a sample file to the tree
+        if let Node::Directory { children } = &mut tree.root {
+            children.insert(
+                "file.txt".to_string(),
+                Node::File { hash: "dummyhash".to_string() },
+            );
+        }
+
+        // Save the tree
+        tree.save(&file_path)?;
+
+        // Load the tree back
+        let loaded_tree = ProjectTree::load(&file_path)?;
+
+        // Check if the saved and loaded trees are the same
+        assert_eq!(
+            serde_json::to_string_pretty(&tree)?,
+            serde_json::to_string_pretty(&loaded_tree)?
+        );
+
+        // Cleanup: Remove the temp file
+        fs::remove_file(file_path)?;
+
+        Ok(())
     }
 }
