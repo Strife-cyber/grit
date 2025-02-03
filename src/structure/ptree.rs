@@ -41,10 +41,12 @@ impl ProjectTree {
     }
 
     /// Get file hash by relative path, ignoring modification status
-    pub fn get_file_hash(&self, rel_path: &Path) -> Option<&String> {
-        get_node(&self.root, rel_path).and_then(|node| {
+    /// Get file hash by relative path, allowing modification of the project tree
+    pub fn get_file_hash(&mut self, rel_path: &Path) -> Option<String> {
+        // Borrow the node mutably, but avoid returning a reference that outlives the borrow
+        get_node(&mut self.root, rel_path).and_then(|node| {
             if let Node::File { hash, .. } = node {
-                Some(hash)
+                Some(hash.clone()) // Clone the hash to return it safely
             } else {
                 None
             }

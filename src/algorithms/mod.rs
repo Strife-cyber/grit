@@ -1,2 +1,2 @@
 pub mod vcompare;
-mod fcompress;
+pub mod fcompress;

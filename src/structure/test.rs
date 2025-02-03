@@ -164,4 +164,51 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_modification() {
+        // Setup
+        let base_path = Path::new("./test_project");
+        fs::create_dir_all(base_path).expect("Failed to create base directory");
+
+        let file_path = base_path.join("file.txt");
+
+        // Create ProjectTree
+        let mut project_tree = ProjectTree::new(base_path).expect("Failed to create project tree");
+
+        // Step 1: Add the file with initial content
+        create_file(&file_path, "Initial content");
+
+        // Add file to project tree
+        project_tree.add(&file_path).expect("Failed to add file to tree");
+
+        // Step 2: Store the initial hash (borrow project_tree immutably)
+        let initial_hash = {
+            project_tree.get_file_hash(&Path::new("file.txt"))
+                .expect("Failed to get file hash")
+        };
+
+        // Step 3: Modify the file
+        create_file(&file_path, "Modified content");
+
+        // Step 4: Add the file again to update the tree with the new content (mutably borrow project_tree)
+        project_tree.add(&file_path).expect("Failed to add modified file to tree");
+
+        // Step 5: Get the new hash (borrow project_tree immutably again)
+        let new_hash = {
+            project_tree.get_file_hash(&Path::new("file.txt"))
+                .expect("Failed to get modified file hash")
+        };
+
+        // Step 6: Ensure the hash has changed (indicating modification)
+        assert_ne!(initial_hash, new_hash, "File should have been marked as modified");
+
+        // Step 7: Check if the file is marked as modified
+        let modified_files = project_tree.get_modified_files();
+        assert_eq!(modified_files.len(), 1, "There should be one modified file");
+        assert_eq!(modified_files[0], PathBuf::from("file.txt"), "The modified file path is incorrect");
+
+        // Cleanup
+        fs::remove_dir_all(base_path).expect("Failed to clean up test directory");
+    }
 }
