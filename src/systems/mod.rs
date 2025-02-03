@@ -1,2 +1,4 @@
 pub(super) mod init;
-mod tests;
+pub(super) mod add;
+mod init_test;
+mod add_test;

@@ -2,9 +2,11 @@ use std::io;
 use std::io::Write;
 use std::path::Path;
 use tempfile::TempDir;
+use super::node::Node;
 use std::fs::{self, File};
-
-use super::ptree::{Node, ProjectTree};
+use super::ptree::ProjectTree;
+use super::operations::compute_hash;
+use super::serialization::{save, load};
 
 #[cfg(test)]
 mod tests {
@@ -43,7 +45,7 @@ mod tests {
         assert!(tree.exists(Path::new("test.txt")), "File not found in tree");
         assert_eq!(
             tree.get_file_hash(Path::new("test.txt")).unwrap(),
-            tree.compute_hash(&file_path).unwrap().as_str()
+            compute_hash(&file_path).unwrap().as_str()
         );
     }
 
@@ -141,15 +143,15 @@ mod tests {
         if let Node::Directory { children } = &mut tree.root {
             children.insert(
                 "file.txt".to_string(),
-                Node::File { hash: "dummyhash".to_string() },
+                Node::File { hash: "dummyhash".to_string(), modified: true },
             );
         }
 
         // Save the tree
-        tree.save(&file_path)?;
+        save(&tree, Option::from(file_path.clone()))?;
 
         // Load the tree back
-        let loaded_tree = ProjectTree::load(&file_path)?;
+        let loaded_tree = load(Option::from(file_path.clone()))?;
 
         // Check if the saved and loaded trees are the same
         assert_eq!(
