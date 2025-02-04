@@ -27,7 +27,6 @@ impl Commit {
 
         for file_path in &modified_files {
             let file_stem = Path::new(file_path)
-                .with_extension("")
                 .to_string_lossy()
                 .replace("/", "_");
             let version_path = format!(".grit/versions/{}.json", file_stem);

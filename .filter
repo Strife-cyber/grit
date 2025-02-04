@@ -1,4 +1,1 @@
-{
-  "allowed": [],
-  "denied": ["/target"]
-}
+denied = ["target"]
