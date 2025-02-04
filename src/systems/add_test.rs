@@ -3,7 +3,7 @@ use super::add::add;
 use std::path::{Path};
 use std::fs::{self, File};
 use std::io::{self, Write};
-use crate::systems::init::{init_grit, find_grit_root};
+use crate::systems::init::{init_grit};
 
 /// Helper function to set up a test `.grit` repository
 fn setup_grit_repo() -> io::Result<()> {

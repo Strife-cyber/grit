@@ -5,7 +5,7 @@ use super::commit::Commit;
 use std::collections::HashMap;
 
 const COMMITS_FILE: &str = ".grit/commits.json";
-const HEAD_FILE: &str = ".grit/HEAD";
+pub const HEAD_FILE: &str = ".grit/HEAD";
 
 /// Save a new commit and update HEAD
 pub fn save_commit(commit: &Commit) -> io::Result<()> {

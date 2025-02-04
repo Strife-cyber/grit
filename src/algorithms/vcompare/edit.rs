@@ -1,5 +1,7 @@
+use serde::{Serialize, Deserialize};
+
 /// This enum demonstrates the actions that can be taken during our comparison.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 #[allow(dead_code)]
 pub enum Edit {
     /// Represents a deletion at a specific index.

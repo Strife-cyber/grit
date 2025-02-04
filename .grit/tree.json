@@ -1,0 +1,15 @@
+{
+  "root": {
+    "Directory": {
+      "children": {
+        "test_file.txt": {
+          "File": {
+            "hash": "e78824cde9b156f48f2518611da2f0aaf86bf011",
+            "modified": true
+          }
+        }
+      }
+    }
+  },
+  "base_path": "\\\\?\\C:\\Users\\Strife-Cyber\\RustroverProjects\\grit"
+}

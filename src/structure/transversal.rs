@@ -15,9 +15,12 @@ pub fn traverse(node: &Node, current_path: PathBuf, files: &mut Vec<PathBuf>) {
 
 
 #[allow(dead_code)]
-pub fn traverse_modified(node: &Node, current_path: PathBuf, modified_files: &mut Vec<PathBuf>) {
+pub fn traverse_modified(node: &mut Node, current_path: PathBuf, modified_files: &mut Vec<PathBuf>) {
     match node {
-        Node::File { modified, .. } if *modified => modified_files.push(current_path),
+        Node::File { modified, .. } if *modified => {
+            modified_files.push(current_path);
+            *modified = false;
+        },
         Node::Directory { children } => {
             for (name, node) in children {
                 let path = current_path.join(name);

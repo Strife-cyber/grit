@@ -68,9 +68,9 @@ impl ProjectTree {
     /// Get a list of modified files
 
     #[allow(dead_code)]
-    pub fn get_modified_files(&self) -> Vec<PathBuf> {
+    pub fn get_modified_files(&mut self) -> Vec<PathBuf> {
         let mut modified_files = Vec::new();
-        traverse_modified(&self.root, PathBuf::new(), &mut modified_files);
+        traverse_modified(&mut self.root, PathBuf::new(), &mut modified_files);
         modified_files
     }
 }

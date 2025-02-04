@@ -93,7 +93,7 @@ fn update_or_insert_file(children: &mut HashMap<String, Node>, file_name: &str, 
             println!("Added: {}", base_path.join(rel_path).display());
             children.insert(file_name.to_string(), Node::File {
                 hash: current_hash,
-                modified: false, // New files are not "modified" yet
+                modified: true, // New files are considered as "modified"
             });
         }
     }
