@@ -1,10 +1,16 @@
+use super::node::Node;
+use super::ptree::ProjectTree;
+use super::operations::compute_hash;
+use super::serialization::{save, load};
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use std::path::PathBuf;
-    use tempfile::NamedTempFile;
     use super::*;
+    use std::fs::{self, File};
+    use std::io::{self, Write};
+    use std::collections::HashMap;
+    use std::path::{Path, PathBuf};
+    use tempfile::{NamedTempFile, TempDir};
 
     fn create_file(path: &Path, content: &str) {
         let mut file = File::create(path).expect("Failed to create file");

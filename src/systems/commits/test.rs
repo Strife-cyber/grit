@@ -1,13 +1,19 @@
+use super::commit::Commit;
+use super::functions::{
+    HEAD_FILE,
+    save_commit, load_commit,
+    load_all_commits, get_head_commit
+};
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use std::fs::File;
     use std::io::Write;
-    use std::path::{Path, PathBuf};
     use std::{env, fs, io};
     use crate::systems::add::add;
+    use std::path::{Path, PathBuf};
     use crate::systems::init::init_grit;
-    use super::*;
 
     fn setup() -> io::Result<()> {
         // Initialize a .grit repository

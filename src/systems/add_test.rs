@@ -1,6 +1,6 @@
 use std::env;
 use std::fs::{self};
-use std::io::{self};
+use std::io::{self, Write};
 use crate::systems::init::{init_grit};
 
 /// Helper function to set up a test `.grit` repository
@@ -26,9 +26,11 @@ fn cleanup_grit_repo() -> io::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-    use crate::structure::serialization::load;
     use super::*;
+    use std::fs::File;
+    use crate::systems::add::add;
+    use std::path::{Path, PathBuf};
+    use crate::structure::serialization::load;
 
     #[test]
     fn test_add_file_to_grit_repo() -> io::Result<()> {

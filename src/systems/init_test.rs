@@ -1,11 +1,17 @@
+use super::init::{
+    GRIT_DIR, CONFIG_FILE,
+    init_grit, find_grit_root,
+    normalize_path, is_grit_repo,
+    update_grit_root
+};
 
 #[cfg(test)]
 mod init_tests {
-    use super::*;
     use std::fs;
+    use super::*;
     use std::io::{Read};
-    use std::path::{Path, PathBuf};
     use tempfile::tempdir;
+    use std::path::{Path, PathBuf};
 
     #[test]
     fn test_init_grit_creates_grit_directory() {

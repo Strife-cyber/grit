@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use super::versioning::Version;
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
-use crate::structure::serialization::load;
+use crate::structure::serialization::{load, save};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Commit {
@@ -20,6 +20,7 @@ impl Commit {
     pub fn new(message: &str, author: &str) -> std::io::Result<Option<Commit>> {
         let mut tree = load(None)?;
         let modified_files = tree.get_modified_files();
+        save(&tree, None)?;
         let mut versions_map: HashMap<String, _> = HashMap::new();
         let mut has_actual_changes = false;
 

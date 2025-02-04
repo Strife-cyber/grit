@@ -1,7 +1,12 @@
+use super::compress::{compress_file, decompress_file};
 
 #[cfg(test)]
 mod tests {
+    use std::io;
     use super::*;
+    use std::fs::File;
+    use tempfile::NamedTempFile;
+    use std::io::{Read, Seek, SeekFrom, Write};
 
     #[test]
     fn test_compress_file() -> io::Result<()> {

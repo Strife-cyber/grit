@@ -2,7 +2,6 @@ use uuid::Uuid;
 use std::path::Path;
 use std::fs::{self, File};
 use std::io::{Read, Write};
-use chardetng::EncodingDetector;
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 use crate::algorithms::vcompare::edit::Edit;
@@ -12,38 +11,20 @@ use crate::algorithms::vcompare::utils::split_lines;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Version {
     pub original: String,
-    pub versions: Vec<VersionData>,
+    pub versions: Vec<VersionData>
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct VersionData {
     pub version_id: String,
     pub timestamp: u64,
-    pub changes: Vec<Edit>,
+    pub changes: Vec<Edit>
 }
 
 impl Version {
-    /// Reads a file and converts it to UTF-8 if necessary
-    fn read_file_as_utf8(file_path: &str) -> std::io::Result<String> {
-        let mut raw_content = Vec::new();
-        File::open(file_path)?.read_to_end(&mut raw_content)?;
-
-        // Detect encoding
-        let mut detector = EncodingDetector::new();
-        detector.feed(&raw_content, true);
-        let encoding = detector.guess(None, true);
-
-        // Decode with detected encoding
-        let mut decoder = encoding.new_decoder();
-        let mut output = String::with_capacity(raw_content.len() * 2);
-        let (_result, _read, _had_errors) = decoder.decode_to_str_without_replacement(&raw_content, &mut output, true);
-
-        Ok(output)
-    }
-
     /// Creates a new version-tracked file
     pub fn create(file_path: &str, json_path: &str) -> std::io::Result<()> {
-        let content = Self::read_file_as_utf8(file_path)?;
+        let content = super::functions::read_file(file_path)?;
 
         let version_data = Version {
             original: content.clone(),
@@ -65,14 +46,20 @@ impl Version {
 
     /// Load an existing tracked file
     pub fn load(json_path: &str) -> std::io::Result<Version> {
-        let json_content = Self::read_file_as_utf8(json_path)?;
+        let mut file = File::open(json_path)?;
+        let mut json_content = String::new();
+        file.read_to_string(&mut json_content)?;
+
         let version_data: Version = serde_json::from_str(&json_content)?;
         Ok(version_data)
     }
 
     /// Adds a new version by computing differences
     pub fn add_version(&mut self, file_path: &str, json_path: &str) -> std::io::Result<String> {
-        let new_content = Self::read_file_as_utf8(file_path)?.trim_end().to_string();
+        let new_content = super::functions::read_file(file_path)?;
+
+        // Normalize content (trim trailing whitespace & newlines)
+        let new_content = new_content.trim_end().to_string();
         let last_content = self.reconstruct_latest().trim_end().to_string();
 
         let changes = compare(&last_content, &new_content);

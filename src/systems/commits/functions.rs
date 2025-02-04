@@ -1,5 +1,6 @@
 use std::{io, fs};
 use std::io::Read;
+use std::fs::File;
 use std::path::Path;
 use super::commit::Commit;
 use std::collections::HashMap;
@@ -26,7 +27,7 @@ pub fn save_commit(commit: &Commit) -> io::Result<()> {
 pub fn get_head_commit() -> io::Result<Option<String>> {
     if Path::new(HEAD_FILE).exists() {
         let mut head = String::new();
-        fs::File::open(HEAD_FILE)?.read_to_string(&mut head)?;
+        File::open(HEAD_FILE)?.read_to_string(&mut head)?;
         return Ok(Some(head.trim().to_string()));
     }
     Ok(None)
@@ -46,5 +47,19 @@ pub fn load_all_commits() -> io::Result<HashMap<String, Commit>> {
         Ok(commits)
     } else {
         Ok(HashMap::new())
+    }
+}
+
+/// reads a file
+pub fn read_file(file_path: &str) -> io::Result<String> {
+    let mut raw_content = Vec::new();
+    File::open(file_path)?.read_to_end(&mut raw_content)?;
+
+    match std::str::from_utf8(&raw_content) {
+        Ok(text) => Ok(text.to_string()), // Return UTF-8 string
+        Err(_) => {
+            println!("(File is not UTF-8 encoded)"); // Just print a message
+            Ok(String::from_utf8_lossy(&raw_content).to_string()) // Return best-effort UTF-8 conversion
+        }
     }
 }
