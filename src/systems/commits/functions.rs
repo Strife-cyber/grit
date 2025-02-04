@@ -46,6 +46,8 @@ pub fn load_all_commits() -> io::Result<HashMap<String, Commit>> {
         let commits: HashMap<String, Commit> = serde_json::from_str(&json)?;
         Ok(commits)
     } else {
+        File::create(COMMITS_FILE)?;
+        File::create(HEAD_FILE)?;
         Ok(HashMap::new())
     }
 }
