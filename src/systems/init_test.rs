@@ -1,7 +1,3 @@
-use super::init::{
-    GRIT_DIR, CONFIG_FILE, init_grit, normalize_path,
-    find_grit_root, is_grit_repo, update_grit_root
-};
 
 #[cfg(test)]
 mod init_tests {

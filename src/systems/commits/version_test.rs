@@ -1,4 +1,3 @@
-use super::versioning::Version;
 
 #[cfg(test)]
 mod tests {

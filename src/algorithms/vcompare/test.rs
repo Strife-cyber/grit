@@ -1,5 +1,3 @@
-use super::edit::Edit;
-use super::difference::myers;
 
 #[cfg(test)]
 mod tests {

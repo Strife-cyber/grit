@@ -1,9 +1,3 @@
-use super::commit::Commit;
-use super::functions::{
-    HEAD_FILE,
-    save_commit, load_commit,
-    get_head_commit, load_all_commits
-};
 
 #[cfg(test)]
 mod tests {

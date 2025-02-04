@@ -1,8 +1,3 @@
-use std::fs::File;
-use tempfile::NamedTempFile;
-use super::compress::compress_file;
-use super::compress::decompress_file;
-use std::io::{self, Read, Seek, SeekFrom, Write};
 
 #[cfg(test)]
 mod tests {

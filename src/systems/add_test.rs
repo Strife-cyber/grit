@@ -1,8 +1,6 @@
 use std::env;
-use super::add::add;
-use std::path::{Path};
-use std::fs::{self, File};
-use std::io::{self, Write};
+use std::fs::{self};
+use std::io::{self};
 use crate::systems::init::{init_grit};
 
 /// Helper function to set up a test `.grit` repository
