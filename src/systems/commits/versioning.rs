@@ -34,12 +34,11 @@ impl Version {
         let encoding = detector.guess(None, true);
 
         // Decode with detected encoding
-        let (content, _, had_errors) = encoding.decode(&raw_content);
-        if had_errors {
-            eprintln!("Warning: Some characters could not be decoded properly.");
-        }
+        let mut decoder = encoding.new_decoder();
+        let mut output = String::with_capacity(raw_content.len() * 2);
+        let (_result, _read, _had_errors) = decoder.decode_to_str_without_replacement(&raw_content, &mut output, true);
 
-        Ok(content.into_owned())
+        Ok(output)
     }
 
     /// Creates a new version-tracked file
