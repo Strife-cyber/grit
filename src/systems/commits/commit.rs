@@ -5,6 +5,7 @@ use super::versioning::Version;
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 use crate::structure::serialization::{load, save};
+use crate::systems::commits::functions::save_commit;
 use crate::systems::filters::filter::{filter_paths, load_file_filter};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -51,13 +52,17 @@ impl Commit {
             return Ok(None);
         }
 
-        Ok(Some(Commit {
+        let commit = Commit {
             id: Uuid::new_v4().to_string(),
             timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
             author: author.to_string(),
             message: message.to_string(),
             files: modified_files.iter().map(|f| f.to_str().unwrap().to_string()).collect(),
             versions: versions_map,
-        }))
+        };
+
+        save_commit(&commit)?;
+
+        Ok(Some(commit))
     }
 }

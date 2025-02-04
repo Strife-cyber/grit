@@ -50,7 +50,7 @@ fn main() {
                     println!("Committed: {}", commit.id);
                 }
                 Ok(None) => {
-                    println!("No changes to commit.");
+                    println!("No more changes to commit.");
                 }
                 Err(e) => {
                     eprintln!("Error committing: {}", e);
