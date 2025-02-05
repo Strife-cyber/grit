@@ -10,14 +10,14 @@
 ✅ **Add files** – Stage files for commit.
 ✅ **Commit changes** – Save file changes with a commit message.
 ✅ **Track file versions** – Maintain a history of modifications.
+✅ **Branching** – Support for multiple branches.
+✅ **Logging Commits** – Display commit history in a readable format.
 
 ### **🔜 Future Enhancements**
 
-🔹 **Branching** – Support for multiple branches.
 🔹 **Merging** – Ability to merge commit histories.
 🔹 **Commit Diffing** – Compare two commits to see changes.
 🔹 **Undoing Commits** – Soft/hard resets to previous commits.
-🔹 **Logging Commits** – Display commit history in a readable format.
 
 ------
 
