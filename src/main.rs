@@ -2,7 +2,8 @@ use std::env;
 use std::process;
 use crate::systems::add::add;
 use crate::systems::commits::commit::Commit;
-use crate::systems::init::init_grit;
+use crate::systems::commits::log::log;
+use crate::systems::init::{init_grit, update_branch};
 
 mod systems;
 mod structure;
@@ -57,6 +58,17 @@ fn main() {
                     process::exit(1);
                 }
             }
+        }
+        "branch" => {
+            if args.len() < 4 || args[2] != "-M" {
+                eprintln!("Usage: grit branch -M \"branch name\"");
+                process::exit(1);
+            }
+            let branch = &args[3];
+            update_branch(branch).expect("Failed to update branch");
+        }
+        "log" => {
+            log().expect("An error occurred that's all we know");
         }
         _ => {
             eprintln!("Unknown command: {}", args[1]);

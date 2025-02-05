@@ -8,17 +8,32 @@ use std::collections::HashMap;
 const COMMITS_FILE: &str = ".grit/commits.json";
 pub const HEAD_FILE: &str = ".grit/HEAD";
 
+pub fn create_commit_files() -> io::Result<()> {
+    // Ensure HEAD file exists before writing
+    if !Path::new(HEAD_FILE).exists() || !Path::new(COMMITS_FILE).exists() {
+        if let Some(parent) = Path::new(COMMITS_FILE).parent() {
+            fs::create_dir_all(parent)?;
+        }
+        if let Some(parent) = Path::new(HEAD_FILE).parent() {
+            fs::create_dir_all(parent)?;
+        }
+
+        File::create(COMMITS_FILE)?;
+        File::create(HEAD_FILE)?; // Create HEAD file if it doesn’t exist
+    }
+
+    Ok(())
+}
+
 /// Save a new commit and update HEAD
 pub fn save_commit(commit: &Commit) -> io::Result<()> {
-    let mut commits = load_all_commits().unwrap_or_else(|_| HashMap::new());
+    let mut commits = load_all_commits()?; // Avoid unwrap()
 
-    // save a new commit
+    // Save the new commit
     commits.insert(commit.id.clone(), commit.clone());
     let json = serde_json::to_string_pretty(&commits)?;
     fs::write(COMMITS_FILE, json)?;
-
-    // update HEAD
-    fs::write(HEAD_FILE, &commit.id)?;
+    fs::write(HEAD_FILE, &commit.id.trim())?;
 
     Ok(())
 }
@@ -28,7 +43,7 @@ pub fn get_head_commit() -> io::Result<Option<String>> {
     if Path::new(HEAD_FILE).exists() {
         let mut head = String::new();
         File::open(HEAD_FILE)?.read_to_string(&mut head)?;
-        return Ok(Some(head.trim().to_string()));
+        return Ok(Some(head.trim().to_string())); // Trim any newlines
     }
     Ok(None)
 }
@@ -41,27 +56,21 @@ pub fn load_commit(commit_id: &str) -> io::Result<Option<Commit>> {
 
 /// Load all commits
 pub fn load_all_commits() -> io::Result<HashMap<String, Commit>> {
-    if Path::new(COMMITS_FILE).exists() {
-        let json = fs::read_to_string(COMMITS_FILE)?;
-        let commits: HashMap<String, Commit> = serde_json::from_str(&json)?;
-        Ok(commits)
-    } else {
-        File::create(COMMITS_FILE)?;
-        File::create(HEAD_FILE)?;
-        Ok(HashMap::new())
-    }
+    let json = fs::read_to_string(COMMITS_FILE)?;
+    let commits: HashMap<String, Commit> = serde_json::from_str(&json).unwrap_or_else(|_| HashMap::new()); // Handle invalid JSON
+    Ok(commits)
 }
 
-/// reads a file
+/// Reads a file as UTF-8 or falls back to best-effort conversion
 pub fn read_file(file_path: &str) -> io::Result<String> {
     let mut raw_content = Vec::new();
     File::open(file_path)?.read_to_end(&mut raw_content)?;
 
     match std::str::from_utf8(&raw_content) {
-        Ok(text) => Ok(text.to_string()), // Return UTF-8 string
+        Ok(text) => Ok(text.to_string()), // Return valid UTF-8 string
         Err(_) => {
-            println!("(File is not UTF-8 encoded)"); // Just print a message
-            Ok(String::from_utf8_lossy(&raw_content).to_string()) // Return best-effort UTF-8 conversion
+            println!("Warning: File is not UTF-8 encoded, converting with loss."); // More descriptive message
+            Ok(String::from_utf8_lossy(&raw_content).to_string()) // Convert with lossy UTF-8
         }
     }
 }

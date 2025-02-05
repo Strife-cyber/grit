@@ -12,15 +12,15 @@ pub fn init_grit() -> io::Result<()> {
 
     if grit_path.exists() {
         println!("Already a grit repository.");
-        update_grit_root(&current_dir)?;
+        update_grit_root(&current_dir, "Main")?;
         return Ok(());
     }
 
     // Create .grit directory
     fs::create_dir(&grit_path)?;
 
-    // Write the absolute path to .grit/config
-    update_grit_root(&current_dir)?;
+    // Write the absolute path and branch to .grit/config
+    update_grit_root(&current_dir, "Main")?;
 
     println!("Initialized empty grit repository in {}", grit_path.display());
     Ok(())
@@ -46,32 +46,76 @@ pub fn is_grit_repo() -> bool {
     find_grit_root(&std::env::current_dir().unwrap()).is_some()
 }
 
-/// Update the `.grit/config` file with the current directory
-pub fn update_grit_root(current_dir: &Path) -> io::Result<()> {
+pub fn update_branch(branch: &str) -> io::Result<()> {
+    let current_dir = std::env::current_dir()?;
     let grit_path = current_dir.join(GRIT_DIR);
-    let config_path = grit_path.join(CONFIG_FILE);
 
-    // Check if .grit/config exists and create if not
-    if !config_path.exists() {
-        fs::File::create(&config_path)?;
-        println!("Setup config file at: {}", config_path.display());
-    }
-
-    // Read existing path from config
-    let mut file = fs::File::open(&config_path)?;
-    let mut old_path = String::new();
-    file.read_to_string(&mut old_path)?;
-
-    let new_path = normalize_path(&current_dir.canonicalize()?).display().to_string();
-
-    // If paths are different, update config
-    if old_path.trim() != new_path {
-        let mut file = fs::File::create(config_path)?;
-        writeln!(file, "{}", new_path)?;
-        println!("Updated grit repository path to {}", new_path);
+    if grit_path.exists() {
+        update_grit_root(&current_dir, branch)?;
+        println!("Branch set to {}", branch);
+        return Ok(());
     }
 
     Ok(())
+}
+
+/// Update the `.grit/config` file with the current directory and branch
+pub fn update_grit_root(current_dir: &Path, branch: &str) -> io::Result<()> {
+    let grit_path = current_dir.join(GRIT_DIR);
+    let config_path = grit_path.join(CONFIG_FILE);
+
+    // Ensure the .grit directory exists
+    if !grit_path.exists() {
+        fs::create_dir(&grit_path)?;
+    }
+
+    let new_path = normalize_path(&current_dir.canonicalize()?).display().to_string();
+
+    // Read existing config
+    let mut old_content = String::new();
+    if let Ok(mut file) = fs::File::open(&config_path) {
+        file.read_to_string(&mut old_content)?;
+    }
+
+    let mut old_branch = "Main".to_string();
+    let mut old_path = String::new();
+
+    for line in old_content.lines() {
+        if line.starts_with("path=") {
+            old_path = line.replace("path=", "").trim().to_string();
+        } else if line.starts_with("branch=") {
+            old_branch = line.replace("branch=", "").trim().to_string();
+        }
+    }
+
+    // Only update if there are changes
+    if old_path != new_path || old_branch != branch {
+        let mut file = fs::File::create(&config_path)?;
+        writeln!(file, "path={}", new_path)?;
+        writeln!(file, "branch={}", branch)?;
+        println!("Updated grit repository path to {}", new_path);
+        println!("Set branch to {}", branch);
+    }
+
+    Ok(())
+}
+
+/// Read the current branch from `.grit/config`
+pub fn get_current_branch() -> io::Result<String> {
+    let current_dir = std::env::current_dir()?;
+    let grit_root = find_grit_root(&current_dir).ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "Not a grit repository"))?;
+    let config_path = grit_root.join(GRIT_DIR).join(CONFIG_FILE);
+
+    let mut content = String::new();
+    fs::File::open(&config_path)?.read_to_string(&mut content)?;
+
+    for line in content.lines() {
+        if line.starts_with("branch=") {
+            return Ok(line.replace("branch=", "").trim().to_string());
+        }
+    }
+
+    Err(io::Error::new(io::ErrorKind::InvalidData, "Branch not found in config"))
 }
 
 /// Normalize a path by removing redundant components and resolving `.` and `. .`

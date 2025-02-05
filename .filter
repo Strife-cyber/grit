@@ -1,1 +1,2 @@
+allowed = ["src"]
 denied = ["target"]
